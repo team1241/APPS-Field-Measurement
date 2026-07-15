@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "npm run fix -- --skip=correctness/noUnusedImports"
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,6 @@
+pre-commit:
+  jobs:
+    - run: bunx ultracite fix
+      glob:
+        - "src/**/*.{js,jsx,ts,tsx,json,jsonc,css}"
+      stage_fixed: true

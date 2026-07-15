@@ -6,21 +6,31 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "lint": "biome check src",
+    "format": "biome format --write src",
+    "check": "ultracite check src",
+    "fix": "ultracite fix src",
+    "prepare": "lefthook install"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.5.18",
+    "@t3-oss/env-nextjs": "^0.13.11",
+    "convex": "^1.42.2",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
+    "@biomejs/biome": "^2.5.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "jiti": "^2.7.0",
+    "lefthook": "^2.1.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ultracite": "^7.9.4"
   }
 }

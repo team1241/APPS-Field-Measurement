@@ -52,21 +52,38 @@ npm install
 
 ## Getting Started
 
-First, run the development server:
+This app needs two processes in development: the **Convex** backend and the **Next.js** frontend.
+
+### 1. Start the Convex backend
+
+In one terminal, from the project root:
+
+```bash
+npx convex dev
+```
+
+On first run, this will:
+
+- Log you into Convex (or create an account) if needed
+- Create or link a development deployment
+- Push functions from `convex/`
+- Write `CONVEX_DEPLOYMENT`, `NEXT_PUBLIC_CONVEX_URL`, and related values into `.env.local`
+
+Leave this process running. It watches `convex/` and syncs changes to your deployment.
+
+Use `convex dev` for day-to-day development — not `convex deploy` (that targets production).
+
+### 2. Start the Next.js app
+
+In a second terminal:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

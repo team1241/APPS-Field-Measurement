@@ -1,3 +1,8 @@
+import type { FieldPoint } from "./workspace-types";
+
+const EXPORTED_LINE_WIDTH = 8;
+const EXPORTED_POINT_RADIUS = 12;
+
 const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> =>
   await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -10,7 +15,33 @@ const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> =>
     }, "image/png");
   });
 
-export const exportFieldImage = async (imageSrc: string): Promise<Blob> => {
+const drawPoints = (
+  context: CanvasRenderingContext2D,
+  points: FieldPoint[]
+): void => {
+  context.fillStyle = "white";
+  context.strokeStyle = "white";
+  context.lineCap = "round";
+  context.lineWidth = EXPORTED_LINE_WIDTH;
+
+  if (points.length === 2) {
+    context.beginPath();
+    context.moveTo(points[0].x, points[0].y);
+    context.lineTo(points[1].x, points[1].y);
+    context.stroke();
+  }
+
+  for (const point of points) {
+    context.beginPath();
+    context.arc(point.x, point.y, EXPORTED_POINT_RADIUS, 0, 2 * Math.PI);
+    context.fill();
+  }
+};
+
+export const exportFieldImage = async (
+  imageSrc: string,
+  points: FieldPoint[]
+): Promise<Blob> => {
   const response = await fetch(imageSrc);
   if (!response.ok) {
     throw new Error("The field image could not be loaded for export.");
@@ -28,6 +59,7 @@ export const exportFieldImage = async (imageSrc: string): Promise<Blob> => {
   }
 
   context.drawImage(imageBitmap, 0, 0);
+  drawPoints(context, points);
   imageBitmap.close();
 
   return await canvasToBlob(canvas);

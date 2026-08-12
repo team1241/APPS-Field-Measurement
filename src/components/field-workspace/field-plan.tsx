@@ -5,6 +5,7 @@ import type {
   MouseEvent,
   SetStateAction,
 } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { FieldPoint } from "./workspace-types";
 
 interface FieldPlanProps {
@@ -16,9 +17,53 @@ interface FieldPlanProps {
 }
 
 const MAX_POINTS = 2;
-const VISIBLE_POINT_RADIUS = 4;
-const POINT_HITBOX_RADIUS = 14;
+const POINT_RADIUS_IN_PIXELS = 10;
 const LINE_STROKE_WIDTH = 5;
+const FOCUS_RING_WIDTH_IN_PIXELS = 2;
+const DEFAULT_IMAGE_UNITS_PER_PIXEL = 1;
+
+const useImageUnitsPerPixel = () => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [imageUnitsPerPixel, setImageUnitsPerPixel] = useState(
+    DEFAULT_IMAGE_UNITS_PER_PIXEL
+  );
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
+
+    const updateScale = (): void => {
+      const transformationMatrix = svg.getScreenCTM();
+      if (!transformationMatrix) {
+        return;
+      }
+
+      const pixelsPerImageUnit = Math.hypot(
+        transformationMatrix.a,
+        transformationMatrix.b
+      );
+      if (pixelsPerImageUnit <= 0) {
+        return;
+      }
+
+      setImageUnitsPerPixel(1 / pixelsPerImageUnit);
+    };
+
+    updateScale();
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(svg);
+    window.addEventListener("resize", updateScale);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScale);
+    };
+  }, []);
+
+  return { imageUnitsPerPixel, svgRef };
+};
 
 const getPointIndex = (element: SVGCircleElement): number =>
   Number(element.dataset.pointIndex);
@@ -54,6 +99,10 @@ export const FieldPlan = ({
   onPointsChange,
   points,
 }: FieldPlanProps) => {
+  const { imageUnitsPerPixel, svgRef } = useImageUnitsPerPixel();
+  const pointRadius = POINT_RADIUS_IN_PIXELS * imageUnitsPerPixel;
+  const focusRingWidth = FOCUS_RING_WIDTH_IN_PIXELS * imageUnitsPerPixel;
+
   const addPoint = (event: MouseEvent<SVGRectElement>): void => {
     const point = getImagePoint(event, imageWidth, imageHeight);
     if (!point) {
@@ -106,6 +155,7 @@ export const FieldPlan = ({
           aria-label="Tap the field to place up to two measurement points. Select a point to remove it."
           className="absolute inset-0 h-full w-full"
           preserveAspectRatio="xMidYMid meet"
+          ref={svgRef}
           role="img"
           viewBox={`0 0 ${imageWidth} ${imageHeight}`}
         >
@@ -130,32 +180,21 @@ export const FieldPlan = ({
             />
           ) : null}
           {points.map((point, pointIndex) => (
-            <g key={`${point.x}-${point.y}`}>
-              <circle
-                className="pointer-events-none fill-white stroke-white"
-                cx={point.x}
-                cy={point.y}
-                r={VISIBLE_POINT_RADIUS}
-                strokeWidth={VISIBLE_POINT_RADIUS * 4}
-                vectorEffect="non-scaling-stroke"
-              />
-              {/* The larger invisible circle makes the point easy to select with a mouse or touch. */}
-              {/* biome-ignore lint/a11y/useSemanticElements: HTML buttons cannot share an SVG image coordinate system. */}
-              <circle
-                aria-label={`Remove point ${pointIndex + 1}`}
-                className="cursor-pointer fill-transparent focus-visible:fill-sky-400/20 focus-visible:outline-none"
-                cx={point.x}
-                cy={point.y}
-                data-point-index={pointIndex}
-                onClick={removePoint}
-                onKeyDown={removePointWithKeyboard}
-                pointerEvents="all"
-                r={POINT_HITBOX_RADIUS}
-                role="button"
-                tabIndex={0}
-                vectorEffect="non-scaling-stroke"
-              />
-            </g>
+            // biome-ignore lint/a11y/useSemanticElements: HTML buttons cannot share an SVG image coordinate system.
+            <circle
+              aria-label={`Remove point ${pointIndex + 1}`}
+              className="cursor-pointer fill-white focus-visible:stroke-sky-400 focus-visible:outline-none"
+              cx={point.x}
+              cy={point.y}
+              data-point-index={pointIndex}
+              key={`${point.x}-${point.y}`}
+              onClick={removePoint}
+              onKeyDown={removePointWithKeyboard}
+              r={pointRadius}
+              role="button"
+              strokeWidth={focusRingWidth}
+              tabIndex={0}
+            />
           ))}
         </svg>
       </div>

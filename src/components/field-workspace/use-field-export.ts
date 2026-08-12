@@ -3,11 +3,16 @@
 import { useCallback, useState } from "react";
 import { downloadBlob } from "./download-blob";
 import { exportFieldImage } from "./export-field-image";
-import type { ExportState, WorkspaceSettings } from "./workspace-types";
+import type {
+  ExportState,
+  FieldPoint,
+  WorkspaceSettings,
+} from "./workspace-types";
 
 export const useFieldExport = (
   imageSrc: string,
-  settings: WorkspaceSettings
+  settings: WorkspaceSettings,
+  points: FieldPoint[]
 ) => {
   const [exportState, setExportState] = useState<ExportState>("idle");
 
@@ -15,7 +20,7 @@ export const useFieldExport = (
     setExportState("exporting");
 
     try {
-      const exportBlob = await exportFieldImage(imageSrc);
+      const exportBlob = await exportFieldImage(imageSrc, points);
       downloadBlob(
         exportBlob,
         `field-measurement-${settings.preset}-${settings.unit}.png`
@@ -24,7 +29,7 @@ export const useFieldExport = (
     } catch {
       setExportState("error");
     }
-  }, [imageSrc, settings.preset, settings.unit]);
+  }, [imageSrc, points, settings.preset, settings.unit]);
 
   return { exportField, exportState };
 };

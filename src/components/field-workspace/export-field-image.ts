@@ -1,7 +1,10 @@
-import type { FieldPoint } from "./workspace-types";
+import { getMeasuredSegments } from "./field-measurements";
+import type { FieldPoint, Unit } from "./workspace-types";
 
 const EXPORTED_LINE_WIDTH = 8;
 const EXPORTED_POINT_RADIUS = 12;
+const EXPORTED_LABEL_HEIGHT = 32;
+const EXPORTED_LABEL_PADDING = 12;
 
 const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> =>
   await new Promise<Blob>((resolve, reject) => {
@@ -17,17 +20,27 @@ const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> =>
 
 const drawPoints = (
   context: CanvasRenderingContext2D,
-  points: FieldPoint[]
+  points: FieldPoint[],
+  unit: Unit
 ): void => {
   context.fillStyle = "white";
   context.strokeStyle = "white";
+  context.lineJoin = "round";
   context.lineCap = "round";
   context.lineWidth = EXPORTED_LINE_WIDTH;
 
-  if (points.length === 2) {
+  const [firstPoint] = points;
+  if (firstPoint && points.length >= 2) {
     context.beginPath();
-    context.moveTo(points[0].x, points[0].y);
-    context.lineTo(points[1].x, points[1].y);
+    context.moveTo(firstPoint.x, firstPoint.y);
+    for (const point of points.slice(1)) {
+      context.lineTo(point.x, point.y);
+    }
+    if (points.length >= 3) {
+      context.closePath();
+      context.fillStyle = "rgba(37, 99, 235, 0.25)";
+      context.fill();
+    }
     context.stroke();
   }
 
@@ -36,11 +49,35 @@ const drawPoints = (
     context.arc(point.x, point.y, EXPORTED_POINT_RADIUS, 0, 2 * Math.PI);
     context.fill();
   }
+
+  context.font = "700 18px Arial, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  for (const { end, label, start } of getMeasuredSegments(points, unit)) {
+    const midpointX = (start.x + end.x) / 2;
+    const midpointY = (start.y + end.y) / 2;
+    const labelWidth =
+      context.measureText(label).width + EXPORTED_LABEL_PADDING * 2;
+
+    context.beginPath();
+    context.roundRect(
+      midpointX - labelWidth / 2,
+      midpointY - EXPORTED_LABEL_HEIGHT / 2,
+      labelWidth,
+      EXPORTED_LABEL_HEIGHT,
+      EXPORTED_LABEL_HEIGHT / 2
+    );
+    context.fillStyle = "rgba(15, 23, 42, 0.86)";
+    context.fill();
+    context.fillStyle = "white";
+    context.fillText(label, midpointX, midpointY);
+  }
 };
 
 export const exportFieldImage = async (
   imageSrc: string,
-  points: FieldPoint[]
+  points: FieldPoint[],
+  unit: Unit
 ): Promise<Blob> => {
   const response = await fetch(imageSrc);
   if (!response.ok) {
@@ -59,7 +96,7 @@ export const exportFieldImage = async (
   }
 
   context.drawImage(imageBitmap, 0, 0);
-  drawPoints(context, points);
+  drawPoints(context, points, unit);
   imageBitmap.close();
 
   return await canvasToBlob(canvas);

@@ -2,6 +2,7 @@ export type Preset = "preset-1" | "preset-2" | "preset-3";
 export type Unit = "in" | "m";
 
 export interface WorkspaceSettings {
+  points: FieldPoint[];
   preset: Preset;
   unit: Unit;
 }

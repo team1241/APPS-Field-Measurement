@@ -11,4 +11,9 @@ export interface WorkspaceHistory {
   index: number;
 }
 
+export interface FieldPoint {
+  x: number;
+  y: number;
+}
+
 export type ExportState = "error" | "exporting" | "idle" | "success";

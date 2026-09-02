@@ -4,11 +4,14 @@ import { useCallback, useState } from "react";
 import { INITIAL_SETTINGS } from "./workspace-constants";
 import { workspaceSettingsAreEqual } from "./workspace-settings";
 import type {
+  FieldPoint,
   Preset,
   Unit,
   WorkspaceHistory,
   WorkspaceSettings,
 } from "./workspace-types";
+
+const MAX_POINTS = 2;
 
 export const useWorkspaceHistory = () => {
   const [history, setHistory] = useState<WorkspaceHistory>({
@@ -64,6 +67,27 @@ export const useWorkspaceHistory = () => {
     [updateSettings]
   );
 
+  const addPoint = useCallback(
+    (point: FieldPoint) => {
+      updateSettings((current) =>
+        current.points.length >= MAX_POINTS
+          ? current
+          : { ...current, points: [...current.points, point] }
+      );
+    },
+    [updateSettings]
+  );
+
+  const removePoint = useCallback(
+    (pointIndex: number) => {
+      updateSettings((current) => ({
+        ...current,
+        points: current.points.filter((_, index) => index !== pointIndex),
+      }));
+    },
+    [updateSettings]
+  );
+
   const setUnit = useCallback(
     (unit: Unit) => {
       updateSettings((current) => ({ ...current, unit }));
@@ -72,9 +96,11 @@ export const useWorkspaceHistory = () => {
   );
 
   return {
+    addPoint,
     canRedo: history.index < history.entries.length - 1,
     canUndo: history.index > 0,
     redo,
+    removePoint,
     setPreset,
     settings,
     setUnit,

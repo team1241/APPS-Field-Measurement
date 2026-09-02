@@ -20,7 +20,11 @@ export const useFieldExport = (
     setExportState("exporting");
 
     try {
-      const exportBlob = await exportFieldImage(imageSrc, points);
+      const exportBlob = await exportFieldImage(
+        imageSrc,
+        points,
+        settings.unit
+      );
       downloadBlob(
         exportBlob,
         `field-measurement-${settings.preset}-${settings.unit}.png`

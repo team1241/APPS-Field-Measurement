@@ -1,19 +1,17 @@
 import Image from "next/image";
-import type {
-  Dispatch,
-  KeyboardEvent,
-  MouseEvent,
-  SetStateAction,
-} from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
-import type { FieldPoint } from "./workspace-types";
+import { getMeasuredSegments } from "./field-measurements";
+import type { FieldPoint, Unit } from "./workspace-types";
 
 interface FieldPlanProps {
   imageHeight: number;
   imageSrc: string;
   imageWidth: number;
-  onPointsChange: Dispatch<SetStateAction<FieldPoint[]>>;
+  onAddPoint: (point: FieldPoint) => void;
+  onRemovePoint: (pointIndex: number) => void;
   points: FieldPoint[];
+  unit: Unit;
 }
 
 const MAX_POINTS = 2;
@@ -21,6 +19,10 @@ const POINT_RADIUS_IN_PIXELS = 10;
 const LINE_STROKE_WIDTH = 5;
 const FOCUS_RING_WIDTH_IN_PIXELS = 2;
 const DEFAULT_IMAGE_UNITS_PER_PIXEL = 1;
+const LABEL_FONT_SIZE_IN_PIXELS = 14;
+const LABEL_HEIGHT_IN_PIXELS = 26;
+const LABEL_HORIZONTAL_PADDING_IN_PIXELS = 10;
+const LABEL_CHARACTER_WIDTH_IN_PIXELS = 8;
 
 const useImageUnitsPerPixel = () => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -96,31 +98,31 @@ export const FieldPlan = ({
   imageHeight,
   imageSrc,
   imageWidth,
-  onPointsChange,
+  onAddPoint,
+  onRemovePoint,
   points,
+  unit,
 }: FieldPlanProps) => {
   const { imageUnitsPerPixel, svgRef } = useImageUnitsPerPixel();
   const pointRadius = POINT_RADIUS_IN_PIXELS * imageUnitsPerPixel;
   const focusRingWidth = FOCUS_RING_WIDTH_IN_PIXELS * imageUnitsPerPixel;
 
   const addPoint = (event: MouseEvent<SVGRectElement>): void => {
+    if (points.length >= MAX_POINTS) {
+      return;
+    }
+
     const point = getImagePoint(event, imageWidth, imageHeight);
     if (!point) {
       return;
     }
 
-    onPointsChange((currentPoints) =>
-      currentPoints.length < MAX_POINTS
-        ? [...currentPoints, point]
-        : currentPoints
-    );
+    onAddPoint(point);
   };
 
   const removePoint = (event: MouseEvent<SVGCircleElement>): void => {
     const pointIndex = getPointIndex(event.currentTarget);
-    onPointsChange((currentPoints) =>
-      currentPoints.filter((_, index) => index !== pointIndex)
-    );
+    onRemovePoint(pointIndex);
   };
 
   const removePointWithKeyboard = (
@@ -132,10 +134,11 @@ export const FieldPlan = ({
 
     event.preventDefault();
     const pointIndex = getPointIndex(event.currentTarget);
-    onPointsChange((currentPoints) =>
-      currentPoints.filter((_, index) => index !== pointIndex)
-    );
+    onRemovePoint(pointIndex);
   };
+
+  const svgPoints = points.map(({ x, y }) => `${x},${y}`).join(" ");
+  const measuredSegments = getMeasuredSegments(points, unit);
 
   return (
     <section
@@ -152,7 +155,7 @@ export const FieldPlan = ({
           src={imageSrc}
         />
         <svg
-          aria-label="Tap the field to place up to two measurement points. Select a point to remove it."
+          aria-label="Tap the field to add up to two measurement points. Select a point to remove it."
           className="absolute inset-0 h-full w-full"
           preserveAspectRatio="xMidYMid meet"
           ref={svgRef}
@@ -167,18 +170,14 @@ export const FieldPlan = ({
             onClick={addPoint}
             width={imageWidth}
           />
-          {points.length === MAX_POINTS ? (
-            <line
-              className="pointer-events-none stroke-white"
-              strokeLinecap="round"
-              strokeWidth={LINE_STROKE_WIDTH}
-              vectorEffect="non-scaling-stroke"
-              x1={points[0].x}
-              x2={points[1].x}
-              y1={points[0].y}
-              y2={points[1].y}
-            />
-          ) : null}
+          <polyline
+            className="pointer-events-none fill-none stroke-white"
+            points={svgPoints}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={LINE_STROKE_WIDTH}
+            vectorEffect="non-scaling-stroke"
+          />
           {points.map((point, pointIndex) => (
             // biome-ignore lint/a11y/useSemanticElements: HTML buttons cannot share an SVG image coordinate system.
             <circle
@@ -196,6 +195,41 @@ export const FieldPlan = ({
               tabIndex={0}
             />
           ))}
+          {measuredSegments.map(({ end, key, label, start }) => {
+            const labelHeight = LABEL_HEIGHT_IN_PIXELS * imageUnitsPerPixel;
+            const labelWidth =
+              (label.length * LABEL_CHARACTER_WIDTH_IN_PIXELS +
+                LABEL_HORIZONTAL_PADDING_IN_PIXELS * 2) *
+              imageUnitsPerPixel;
+            const midpointX = (start.x + end.x) / 2;
+            const midpointY = (start.y + end.y) / 2;
+
+            return (
+              <g
+                className="pointer-events-none"
+                key={key}
+                transform={`translate(${midpointX} ${midpointY})`}
+              >
+                <rect
+                  fill="rgba(15, 23, 42, 0.86)"
+                  height={labelHeight}
+                  rx={labelHeight / 2}
+                  width={labelWidth}
+                  x={-labelWidth / 2}
+                  y={-labelHeight / 2}
+                />
+                <text
+                  dominantBaseline="central"
+                  fill="white"
+                  fontSize={LABEL_FONT_SIZE_IN_PIXELS * imageUnitsPerPixel}
+                  fontWeight="700"
+                  textAnchor="middle"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </section>

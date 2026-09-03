@@ -31,6 +31,7 @@ export function FieldWorkspace({
         canUndo={workspace.canUndo}
         exportState={exportState}
         onExport={exportField}
+        onGridToggle={workspace.toggleGrid}
         onPresetChange={workspace.setPreset}
         onRedo={workspace.redo}
         onUndo={workspace.undo}
@@ -44,6 +45,7 @@ export function FieldWorkspace({
         onAddPoint={workspace.addPoint}
         onRemovePoint={workspace.removePoint}
         points={workspace.settings.points}
+        showGrid={workspace.settings.showGrid}
         unit={workspace.settings.unit}
       />
       <ExportStatus state={exportState} />

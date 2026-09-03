@@ -95,6 +95,13 @@ export const useWorkspaceHistory = () => {
     [updateSettings]
   );
 
+  const toggleGrid = useCallback(() => {
+    updateSettings((current) => ({
+      ...current,
+      showGrid: !current.showGrid,
+    }));
+  }, [updateSettings]);
+
   return {
     addPoint,
     canRedo: history.index < history.entries.length - 1,
@@ -104,6 +111,7 @@ export const useWorkspaceHistory = () => {
     setPreset,
     settings,
     setUnit,
+    toggleGrid,
     undo,
   };
 };

@@ -4,6 +4,7 @@ export type Unit = "in" | "m";
 export interface WorkspaceSettings {
   points: FieldPoint[];
   preset: Preset;
+  showGrid: boolean;
   unit: Unit;
 }
 

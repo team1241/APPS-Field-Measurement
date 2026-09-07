@@ -23,7 +23,8 @@ export const useFieldExport = (
       const exportBlob = await exportFieldImage(
         imageSrc,
         points,
-        settings.unit
+        settings.unit,
+        settings.showGrid
       );
       downloadBlob(
         exportBlob,
@@ -33,7 +34,7 @@ export const useFieldExport = (
     } catch {
       setExportState("error");
     }
-  }, [imageSrc, points, settings.preset, settings.unit]);
+  }, [imageSrc, points, settings.preset, settings.showGrid, settings.unit]);
 
   return { exportField, exportState };
 };

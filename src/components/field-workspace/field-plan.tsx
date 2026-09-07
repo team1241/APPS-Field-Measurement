@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { getMeasuredSegments } from "./field-measurements";
+import { IMAGE_UNITS_PER_METER } from "./field-scale";
 import type { FieldPoint, Unit } from "./workspace-types";
 
 interface FieldPlanProps {
@@ -11,6 +12,7 @@ interface FieldPlanProps {
   onAddPoint: (point: FieldPoint) => void;
   onRemovePoint: (pointIndex: number) => void;
   points: FieldPoint[];
+  showGrid: boolean;
   unit: Unit;
 }
 
@@ -23,6 +25,7 @@ const LABEL_FONT_SIZE_IN_PIXELS = 14;
 const LABEL_HEIGHT_IN_PIXELS = 26;
 const LABEL_HORIZONTAL_PADDING_IN_PIXELS = 10;
 const LABEL_CHARACTER_WIDTH_IN_PIXELS = 8;
+const GRID_STROKE_WIDTH_IN_PIXELS = 1.25;
 
 const useImageUnitsPerPixel = () => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -101,6 +104,7 @@ export const FieldPlan = ({
   onAddPoint,
   onRemovePoint,
   points,
+  showGrid,
   unit,
 }: FieldPlanProps) => {
   const { imageUnitsPerPixel, svgRef } = useImageUnitsPerPixel();
@@ -163,6 +167,21 @@ export const FieldPlan = ({
           viewBox={`0 0 ${imageWidth} ${imageHeight}`}
         >
           {/* SVG is intentional: it shares the contained image's coordinate system. */}
+          <defs>
+            <pattern
+              height={IMAGE_UNITS_PER_METER}
+              id="meter-grid"
+              patternUnits="userSpaceOnUse"
+              width={IMAGE_UNITS_PER_METER}
+            >
+              <path
+                d={`M ${IMAGE_UNITS_PER_METER} 0 H 0 V ${IMAGE_UNITS_PER_METER}`}
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.65)"
+                strokeWidth={GRID_STROKE_WIDTH_IN_PIXELS * imageUnitsPerPixel}
+              />
+            </pattern>
+          </defs>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: Field placement is a spatial pointer interaction. */}
           <rect
             className="cursor-crosshair fill-transparent"
@@ -170,6 +189,14 @@ export const FieldPlan = ({
             onClick={addPoint}
             width={imageWidth}
           />
+          {showGrid ? (
+            <rect
+              className="pointer-events-none"
+              fill="url(#meter-grid)"
+              height={imageHeight}
+              width={imageWidth}
+            />
+          ) : null}
           <polyline
             className="pointer-events-none fill-none stroke-white"
             points={svgPoints}
@@ -211,7 +238,7 @@ export const FieldPlan = ({
                 transform={`translate(${midpointX} ${midpointY})`}
               >
                 <rect
-                  fill="rgba(15, 23, 42, 0.86)"
+                  fill="white"
                   height={labelHeight}
                   rx={labelHeight / 2}
                   width={labelWidth}
@@ -220,7 +247,7 @@ export const FieldPlan = ({
                 />
                 <text
                   dominantBaseline="central"
-                  fill="white"
+                  fill="#0f172a"
                   fontSize={LABEL_FONT_SIZE_IN_PIXELS * imageUnitsPerPixel}
                   fontWeight="700"
                   textAnchor="middle"

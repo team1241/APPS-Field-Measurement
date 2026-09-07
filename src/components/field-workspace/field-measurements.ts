@@ -1,10 +1,9 @@
+import { getDistanceInches } from "./field-scale";
 import type { FieldPoint, Unit } from "./workspace-types";
 
-// The reference drawing marks 651.22 in between the matching diamond-plate
-// boundaries, whose centers are 1,239 px apart in the field image.
-const CALIBRATION_DISTANCE_INCHES = 651.22;
-const CALIBRATION_DISTANCE_PIXELS = 1239;
-const METERS_PER_INCH = 0.0254;
+const CENTIMETERS_PER_INCH = 2.54;
+const CENTIMETERS_PER_METER = 100;
+const INCHES_PER_FOOT = 12;
 
 export interface MeasuredSegment {
   end: FieldPoint;
@@ -13,12 +12,44 @@ export interface MeasuredSegment {
   start: FieldPoint;
 }
 
-const formatDistance = (distanceInches: number, unit: Unit): string => {
-  if (unit === "m") {
-    return `${(distanceInches * METERS_PER_INCH).toFixed(2)} m`;
+const formatMetricDistance = (distanceInches: number): string => {
+  const totalCentimeters = Math.round(distanceInches * CENTIMETERS_PER_INCH);
+  const meters = Math.floor(totalCentimeters / CENTIMETERS_PER_METER);
+  const centimeters = totalCentimeters % CENTIMETERS_PER_METER;
+
+  if (meters === 0) {
+    return `${centimeters}cm`;
   }
 
-  return `${distanceInches.toFixed(2)} in`;
+  if (centimeters === 0) {
+    return `${meters}m`;
+  }
+
+  return `${meters}m ${centimeters}cm`;
+};
+
+const formatImperialDistance = (distanceInches: number): string => {
+  const totalInches = Math.round(distanceInches);
+  const feet = Math.floor(totalInches / INCHES_PER_FOOT);
+  const inches = totalInches - feet * INCHES_PER_FOOT;
+
+  if (feet === 0) {
+    return `${inches}in`;
+  }
+
+  if (inches === 0) {
+    return `${feet}ft`;
+  }
+
+  return `${feet}ft ${inches}in`;
+};
+
+const formatDistance = (distanceInches: number, unit: Unit): string => {
+  if (unit === "m") {
+    return formatMetricDistance(distanceInches);
+  }
+
+  return formatImperialDistance(distanceInches);
 };
 
 const createMeasuredSegment = (
@@ -26,10 +57,8 @@ const createMeasuredSegment = (
   end: FieldPoint,
   unit: Unit
 ): MeasuredSegment => {
-  const distancePixels = Math.hypot(end.x - start.x, end.y - start.y);
-  const distanceInches =
-    (distancePixels * CALIBRATION_DISTANCE_INCHES) /
-    CALIBRATION_DISTANCE_PIXELS;
+  const distanceImageUnits = Math.hypot(end.x - start.x, end.y - start.y);
+  const distanceInches = getDistanceInches(distanceImageUnits);
 
   return {
     end,

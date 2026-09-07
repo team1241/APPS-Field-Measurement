@@ -27,6 +27,7 @@ interface WorkspaceToolbarProps {
   canUndo: boolean;
   exportState: ExportState;
   onExport: () => void;
+  onGridToggle: () => void;
   onPresetChange: (preset: Preset) => void;
   onRedo: () => void;
   onUndo: () => void;
@@ -46,6 +47,7 @@ export const WorkspaceToolbar = ({
   canUndo,
   exportState,
   onExport,
+  onGridToggle,
   onPresetChange,
   onRedo,
   onUndo,
@@ -139,9 +141,10 @@ export const WorkspaceToolbar = ({
               <option value="preset-3">Preset 3</option>
             </select>
             <Button
-              className="h-10 rounded-xl border-slate-200 px-3 font-semibold shadow-sm"
-              disabled
-              title="Grid controls coming soon"
+              aria-pressed={settings.showGrid}
+              className="h-10 rounded-xl border-slate-200 px-3 font-semibold shadow-sm aria-pressed:border-blue-200 aria-pressed:bg-blue-50 aria-pressed:text-blue-700"
+              onClick={onGridToggle}
+              title={`${settings.showGrid ? "Hide" : "Show"} 1 metre grid`}
               variant="outline"
             >
               <HugeiconsIcon icon={GridIcon} strokeWidth={2} />

@@ -1,10 +1,36 @@
 import { getMeasuredSegments } from "./field-measurements";
+import { IMAGE_UNITS_PER_METER } from "./field-scale";
 import type { FieldPoint, Unit } from "./workspace-types";
 
 const EXPORTED_LINE_WIDTH = 8;
 const EXPORTED_POINT_RADIUS = 12;
 const EXPORTED_LABEL_HEIGHT = 32;
 const EXPORTED_LABEL_PADDING = 12;
+const EXPORTED_GRID_LINE_WIDTH = 2;
+
+const drawGrid = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number
+): void => {
+  context.save();
+  context.beginPath();
+
+  for (let x = IMAGE_UNITS_PER_METER; x < width; x += IMAGE_UNITS_PER_METER) {
+    context.moveTo(x, 0);
+    context.lineTo(x, height);
+  }
+
+  for (let y = IMAGE_UNITS_PER_METER; y < height; y += IMAGE_UNITS_PER_METER) {
+    context.moveTo(0, y);
+    context.lineTo(width, y);
+  }
+
+  context.lineWidth = EXPORTED_GRID_LINE_WIDTH;
+  context.strokeStyle = "rgba(255, 255, 255, 0.65)";
+  context.stroke();
+  context.restore();
+};
 
 const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> =>
   await new Promise<Blob>((resolve, reject) => {
@@ -67,9 +93,9 @@ const drawPoints = (
       EXPORTED_LABEL_HEIGHT,
       EXPORTED_LABEL_HEIGHT / 2
     );
-    context.fillStyle = "rgba(15, 23, 42, 0.86)";
-    context.fill();
     context.fillStyle = "white";
+    context.fill();
+    context.fillStyle = "#0f172a";
     context.fillText(label, midpointX, midpointY);
   }
 };
@@ -77,7 +103,8 @@ const drawPoints = (
 export const exportFieldImage = async (
   imageSrc: string,
   points: FieldPoint[],
-  unit: Unit
+  unit: Unit,
+  showGrid: boolean
 ): Promise<Blob> => {
   const response = await fetch(imageSrc);
   if (!response.ok) {
@@ -96,6 +123,9 @@ export const exportFieldImage = async (
   }
 
   context.drawImage(imageBitmap, 0, 0);
+  if (showGrid) {
+    drawGrid(context, canvas.width, canvas.height);
+  }
   drawPoints(context, points, unit);
   imageBitmap.close();
 

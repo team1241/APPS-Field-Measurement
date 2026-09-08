@@ -6,5 +6,7 @@ export const workspaceSettingsAreEqual = (
 ): boolean =>
   first.points === second.points &&
   first.preset === second.preset &&
+  first.presetPoints === second.presetPoints &&
+  first.presets === second.presets &&
   first.showGrid === second.showGrid &&
   first.unit === second.unit;

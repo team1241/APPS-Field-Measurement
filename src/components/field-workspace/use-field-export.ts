@@ -9,12 +9,16 @@ import type {
   WorkspaceSettings,
 } from "./workspace-types";
 
+const NON_FILENAME_CHARACTERS = /[^a-z0-9]+/g;
+
 export const useFieldExport = (
   imageSrc: string,
   settings: WorkspaceSettings,
   points: FieldPoint[]
 ) => {
   const [exportState, setExportState] = useState<ExportState>("idle");
+  const presetName =
+    settings.presets.find(({ id }) => id === settings.preset)?.name ?? "preset";
 
   const exportField = useCallback(async () => {
     setExportState("exporting");
@@ -28,13 +32,15 @@ export const useFieldExport = (
       );
       downloadBlob(
         exportBlob,
-        `field-measurement-${settings.preset}-${settings.unit}.png`
+        `field-measurement-${presetName
+          .toLowerCase()
+          .replace(NON_FILENAME_CHARACTERS, "-")}-${settings.unit}.png`
       );
       setExportState("success");
     } catch {
       setExportState("error");
     }
-  }, [imageSrc, points, settings.preset, settings.showGrid, settings.unit]);
+  }, [imageSrc, points, presetName, settings.showGrid, settings.unit]);
 
   return { exportField, exportState };
 };

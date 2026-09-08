@@ -1,9 +1,15 @@
-export type Preset = "preset-1" | "preset-2" | "preset-3";
 export type Unit = "in" | "m";
+
+export interface Preset {
+  id: string;
+  name: string;
+}
 
 export interface WorkspaceSettings {
   points: FieldPoint[];
-  preset: Preset;
+  preset: string;
+  presetPoints: Record<string, FieldPoint[]>;
+  presets: Preset[];
   showGrid: boolean;
   unit: Unit;
 }

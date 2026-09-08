@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { INITIAL_SETTINGS } from "./workspace-constants";
-import { workspaceSettingsAreEqual } from "./workspace-settings";
 import type {
   FieldPoint,
   Preset,
@@ -14,27 +13,33 @@ import type {
 const MAX_POINTS = 2;
 
 export const useWorkspaceHistory = () => {
+  const [viewSettings, setViewSettings] =
+    useState<Omit<WorkspaceSettings, "points">>(INITIAL_SETTINGS);
   const [history, setHistory] = useState<WorkspaceHistory>({
-    entries: [INITIAL_SETTINGS],
+    entries: [INITIAL_SETTINGS.points],
     index: 0,
   });
-  const settings = history.entries[history.index] ?? INITIAL_SETTINGS;
+  const settings: WorkspaceSettings = {
+    ...viewSettings,
+    points: history.entries[history.index] ?? INITIAL_SETTINGS.points,
+  };
 
-  const updateSettings = useCallback(
-    (update: (current: WorkspaceSettings) => WorkspaceSettings) => {
+  const updatePoints = useCallback(
+    (update: (current: FieldPoint[]) => FieldPoint[]) => {
       setHistory((currentHistory) => {
-        const currentSettings =
-          currentHistory.entries[currentHistory.index] ?? INITIAL_SETTINGS;
-        const nextSettings = update(currentSettings);
+        const currentPoints =
+          currentHistory.entries[currentHistory.index] ??
+          INITIAL_SETTINGS.points;
+        const nextPoints = update(currentPoints);
 
-        if (workspaceSettingsAreEqual(currentSettings, nextSettings)) {
+        if (currentPoints === nextPoints) {
           return currentHistory;
         }
 
         return {
           entries: [
             ...currentHistory.entries.slice(0, currentHistory.index + 1),
-            nextSettings,
+            nextPoints,
           ],
           index: currentHistory.index + 1,
         };
@@ -60,47 +65,40 @@ export const useWorkspaceHistory = () => {
     }));
   }, []);
 
-  const setPreset = useCallback(
-    (preset: Preset) => {
-      updateSettings((current) => ({ ...current, preset }));
-    },
-    [updateSettings]
-  );
+  const setPreset = useCallback((preset: Preset) => {
+    setViewSettings((current) => ({ ...current, preset }));
+  }, []);
 
   const addPoint = useCallback(
     (point: FieldPoint) => {
-      updateSettings((current) =>
-        current.points.length >= MAX_POINTS
-          ? current
-          : { ...current, points: [...current.points, point] }
+      updatePoints((current) =>
+        current.length >= MAX_POINTS ? current : [...current, point]
       );
     },
-    [updateSettings]
+    [updatePoints]
   );
 
   const removePoint = useCallback(
     (pointIndex: number) => {
-      updateSettings((current) => ({
-        ...current,
-        points: current.points.filter((_, index) => index !== pointIndex),
-      }));
+      updatePoints((current) =>
+        current.some((_, index) => index === pointIndex)
+          ? current.filter((_, index) => index !== pointIndex)
+          : current
+      );
     },
-    [updateSettings]
+    [updatePoints]
   );
 
-  const setUnit = useCallback(
-    (unit: Unit) => {
-      updateSettings((current) => ({ ...current, unit }));
-    },
-    [updateSettings]
-  );
+  const setUnit = useCallback((unit: Unit) => {
+    setViewSettings((current) => ({ ...current, unit }));
+  }, []);
 
   const toggleGrid = useCallback(() => {
-    updateSettings((current) => ({
+    setViewSettings((current) => ({
       ...current,
       showGrid: !current.showGrid,
     }));
-  }, [updateSettings]);
+  }, []);
 
   return {
     addPoint,

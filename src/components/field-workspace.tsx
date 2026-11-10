@@ -30,10 +30,12 @@ export function FieldWorkspace({
         canRedo={workspace.canRedo}
         canUndo={workspace.canUndo}
         exportState={exportState}
+        onAddPreset={workspace.addPreset}
         onExport={exportField}
         onGridToggle={workspace.toggleGrid}
         onPresetChange={workspace.setPreset}
         onRedo={workspace.redo}
+        onRenamePreset={workspace.renamePreset}
         onUndo={workspace.undo}
         onUnitChange={workspace.setUnit}
         settings={workspace.settings}

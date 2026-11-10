@@ -12,24 +12,22 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HeaderBrand } from "./header-brand";
+import { PresetMenu } from "./preset-menu";
 import { useHeaderMenu } from "./use-header-menu";
 import { useHeaderVisibility } from "./use-header-visibility";
 import { useToolbarHandlers } from "./use-toolbar-handlers";
-import type {
-  ExportState,
-  Preset,
-  Unit,
-  WorkspaceSettings,
-} from "./workspace-types";
+import type { ExportState, Unit, WorkspaceSettings } from "./workspace-types";
 
 interface WorkspaceToolbarProps {
   canRedo: boolean;
   canUndo: boolean;
   exportState: ExportState;
+  onAddPreset: () => void;
   onExport: () => void;
   onGridToggle: () => void;
-  onPresetChange: (preset: Preset) => void;
+  onPresetChange: (preset: string) => void;
   onRedo: () => void;
+  onRenamePreset: (presetId: string, name: string) => void;
   onUndo: () => void;
   onUnitChange: (unit: Unit) => void;
   settings: WorkspaceSettings;
@@ -46,10 +44,12 @@ export const WorkspaceToolbar = ({
   canRedo,
   canUndo,
   exportState,
+  onAddPreset,
   onExport,
   onGridToggle,
   onPresetChange,
   onRedo,
+  onRenamePreset,
   onUndo,
   onUnitChange,
   settings,
@@ -57,10 +57,7 @@ export const WorkspaceToolbar = ({
   const exportLabel = EXPORT_LABELS[exportState];
   const { isMenuOpen, menuRef, toggleMenu, triggerRef } = useHeaderMenu();
   const isHeaderVisible = useHeaderVisibility(isMenuOpen);
-  const { handlePresetChange, handleUnitChange } = useToolbarHandlers(
-    onPresetChange,
-    onUnitChange
-  );
+  const { handleUnitChange } = useToolbarHandlers(onUnitChange);
 
   return (
     <header
@@ -127,19 +124,13 @@ export const WorkspaceToolbar = ({
           </fieldset>
 
           <div className="flex flex-wrap items-center gap-2 min-[900px]:justify-self-center">
-            <label className="sr-only" htmlFor="view-preset">
-              View preset
-            </label>
-            <select
-              className="h-10 min-w-32 rounded-xl border border-slate-200 bg-white px-3 font-semibold text-slate-800 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15"
-              id="view-preset"
-              onChange={handlePresetChange}
-              value={settings.preset}
-            >
-              <option value="preset-1">Preset 1</option>
-              <option value="preset-2">Preset 2</option>
-              <option value="preset-3">Preset 3</option>
-            </select>
+            <PresetMenu
+              activePresetId={settings.preset}
+              onAddPreset={onAddPreset}
+              onPresetChange={onPresetChange}
+              onRenamePreset={onRenamePreset}
+              presets={settings.presets}
+            />
             <Button
               aria-pressed={settings.showGrid}
               className="h-10 rounded-xl border-slate-200 px-3 font-semibold shadow-sm aria-pressed:border-blue-200 aria-pressed:bg-blue-50 aria-pressed:text-blue-700"

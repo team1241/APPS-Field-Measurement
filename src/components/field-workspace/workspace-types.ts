@@ -15,7 +15,7 @@ export interface WorkspaceSettings {
 }
 
 export interface WorkspaceHistory {
-  entries: WorkspaceSettings[];
+  entries: FieldPoint[][];
   index: number;
 }
 

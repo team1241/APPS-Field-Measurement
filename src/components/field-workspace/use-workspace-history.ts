@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { INITIAL_SETTINGS } from "./workspace-constants";
-import { workspaceSettingsAreEqual } from "./workspace-settings";
 import type {
   FieldPoint,
   Unit,
@@ -12,154 +11,160 @@ import type {
 
 const MAX_POINTS = 2;
 
+interface WorkspaceState
+  extends Omit<WorkspaceSettings, "points" | "presetPoints"> {
+  histories: Record<string, WorkspaceHistory>;
+}
+
+const getHistoryPoints = (history: WorkspaceHistory): FieldPoint[] =>
+  history.entries[history.index] ?? [];
+
 export const useWorkspaceHistory = () => {
-  const [history, setHistory] = useState<WorkspaceHistory>({
-    entries: [INITIAL_SETTINGS],
-    index: 0,
-  });
-  const settings = history.entries[history.index] ?? INITIAL_SETTINGS;
+  const [state, setState] = useState<WorkspaceState>(() => ({
+    histories: Object.fromEntries(
+      Object.entries(INITIAL_SETTINGS.presetPoints).map(([preset, points]) => [
+        preset,
+        { entries: [points], index: 0 },
+      ])
+    ),
+    preset: INITIAL_SETTINGS.preset,
+    presets: INITIAL_SETTINGS.presets,
+    showGrid: INITIAL_SETTINGS.showGrid,
+    unit: INITIAL_SETTINGS.unit,
+  }));
+  const history = state.histories[state.preset];
+  const settings: WorkspaceSettings = {
+    points: getHistoryPoints(history),
+    preset: state.preset,
+    presetPoints: Object.fromEntries(
+      Object.entries(state.histories).map(([preset, presetHistory]) => [
+        preset,
+        getHistoryPoints(presetHistory),
+      ])
+    ),
+    presets: state.presets,
+    showGrid: state.showGrid,
+    unit: state.unit,
+  };
 
-  const updateSettings = useCallback(
-    (update: (current: WorkspaceSettings) => WorkspaceSettings) => {
-      setHistory((currentHistory) => {
-        const currentSettings =
-          currentHistory.entries[currentHistory.index] ?? INITIAL_SETTINGS;
-        const nextSettings = update(currentSettings);
-
-        if (workspaceSettingsAreEqual(currentSettings, nextSettings)) {
-          return currentHistory;
+  const updateHistory = useCallback(
+    (update: (current: WorkspaceHistory) => WorkspaceHistory) => {
+      setState((current) => {
+        const currentHistory = current.histories[current.preset];
+        const nextHistory = update(currentHistory);
+        if (currentHistory === nextHistory) {
+          return current;
         }
-
         return {
-          entries: [
-            ...currentHistory.entries.slice(0, currentHistory.index + 1),
-            nextSettings,
-          ],
-          index: currentHistory.index + 1,
+          ...current,
+          histories: { ...current.histories, [current.preset]: nextHistory },
         };
       });
     },
     []
   );
 
-  const undo = useCallback(() => {
-    setHistory((currentHistory) => ({
-      ...currentHistory,
-      index: Math.max(0, currentHistory.index - 1),
-    }));
-  }, []);
-
-  const redo = useCallback(() => {
-    setHistory((currentHistory) => ({
-      ...currentHistory,
-      index: Math.min(
-        currentHistory.entries.length - 1,
-        currentHistory.index + 1
-      ),
-    }));
-  }, []);
-
-  const setPreset = useCallback(
-    (preset: string) => {
-      updateSettings((current) => {
-        const points = current.presetPoints[preset];
-        if (!points) {
-          return current;
+  const updatePoints = useCallback(
+    (update: (current: FieldPoint[]) => FieldPoint[]) => {
+      updateHistory((currentHistory) => {
+        const currentPoints = getHistoryPoints(currentHistory);
+        const nextPoints = update(currentPoints);
+        if (currentPoints === nextPoints) {
+          return currentHistory;
         }
-
-        return { ...current, points, preset };
+        return {
+          entries: [
+            ...currentHistory.entries.slice(0, currentHistory.index + 1),
+            nextPoints,
+          ],
+          index: currentHistory.index + 1,
+        };
       });
     },
-    [updateSettings]
+    [updateHistory]
   );
 
+  const undo = useCallback(() => {
+    updateHistory((current) => ({
+      ...current,
+      index: Math.max(0, current.index - 1),
+    }));
+  }, [updateHistory]);
+
+  const redo = useCallback(() => {
+    updateHistory((current) => ({
+      ...current,
+      index: Math.min(current.entries.length - 1, current.index + 1),
+    }));
+  }, [updateHistory]);
+
+  const setPreset = useCallback((preset: string) => {
+    setState((current) =>
+      current.presets.some(({ id }) => id === preset)
+        ? { ...current, preset }
+        : current
+    );
+  }, []);
+
   const addPreset = useCallback(() => {
-    updateSettings((current) => {
+    setState((current) => {
       const presetNumber = current.presets.length + 1;
       const preset = `preset-${presetNumber}`;
       return {
         ...current,
-        points: [],
+        histories: {
+          ...current.histories,
+          [preset]: { entries: [[]], index: 0 },
+        },
         preset,
-        presetPoints: { ...current.presetPoints, [preset]: [] },
         presets: [
           ...current.presets,
           { id: preset, name: `Preset ${presetNumber}` },
         ],
       };
     });
-  }, [updateSettings]);
+  }, []);
 
-  const renamePreset = useCallback(
-    (presetId: string, name: string) => {
-      const trimmedName = name.trim();
-      if (!trimmedName) {
-        return;
-      }
-
-      updateSettings((current) => ({
-        ...current,
-        presets: current.presets.map((preset) =>
-          preset.id === presetId ? { ...preset, name: trimmedName } : preset
-        ),
-      }));
-    },
-    [updateSettings]
-  );
+  const renamePreset = useCallback((presetId: string, name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return;
+    }
+    setState((current) => ({
+      ...current,
+      presets: current.presets.map((preset) =>
+        preset.id === presetId ? { ...preset, name: trimmedName } : preset
+      ),
+    }));
+  }, []);
 
   const addPoint = useCallback(
     (point: FieldPoint) => {
-      updateSettings((current) => {
-        if (current.points.length >= MAX_POINTS) {
-          return current;
-        }
-
-        const points = [...current.points, point];
-        return {
-          ...current,
-          points,
-          presetPoints: {
-            ...current.presetPoints,
-            [current.preset]: points,
-          },
-        };
-      });
+      updatePoints((current) =>
+        current.length >= MAX_POINTS ? current : [...current, point]
+      );
     },
-    [updateSettings]
+    [updatePoints]
   );
 
   const removePoint = useCallback(
     (pointIndex: number) => {
-      updateSettings((current) => {
-        const points = current.points.filter(
-          (_, index) => index !== pointIndex
-        );
-        return {
-          ...current,
-          points,
-          presetPoints: {
-            ...current.presetPoints,
-            [current.preset]: points,
-          },
-        };
-      });
+      updatePoints((current) =>
+        current.some((_, index) => index === pointIndex)
+          ? current.filter((_, index) => index !== pointIndex)
+          : current
+      );
     },
-    [updateSettings]
+    [updatePoints]
   );
 
-  const setUnit = useCallback(
-    (unit: Unit) => {
-      updateSettings((current) => ({ ...current, unit }));
-    },
-    [updateSettings]
-  );
+  const setUnit = useCallback((unit: Unit) => {
+    setState((current) => ({ ...current, unit }));
+  }, []);
 
   const toggleGrid = useCallback(() => {
-    updateSettings((current) => ({
-      ...current,
-      showGrid: !current.showGrid,
-    }));
-  }, [updateSettings]);
+    setState((current) => ({ ...current, showGrid: !current.showGrid }));
+  }, []);
 
   return {
     addPoint,
